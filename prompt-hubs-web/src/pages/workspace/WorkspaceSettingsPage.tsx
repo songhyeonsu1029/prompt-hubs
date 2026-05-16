@@ -1144,34 +1144,25 @@ function IssuedKeyPanel({
     `  ${baseUrl}/mcp \\\n` +
     `  --header "Authorization: Bearer ${issued.keyPlaintext}"`
 
-  const hookCommandLocal =
-    `PROMPTHUBS_API_KEY=${issued.keyPlaintext} ` +
-    `PROMPTHUBS_BASE_URL=${baseUrl} ` +
-    `node /절대경로/prompthubs/mcp-server/auto-save-hook.js`
-
-  const hookCommandPublished =
+  const hookCommand =
     `PROMPTHUBS_API_KEY=${issued.keyPlaintext} ` +
     `PROMPTHUBS_BASE_URL=${baseUrl} ` +
     `npx -y prompthubs-mcp-hook`
 
-  const buildHookJson = (command: string) =>
-    JSON.stringify(
-      {
-        hooks: {
-          Stop: [
-            {
-              matcher: "",
-              hooks: [{ type: "command", command, timeout: 30 }],
-            },
-          ],
-        },
+  const hookJson = JSON.stringify(
+    {
+      hooks: {
+        Stop: [
+          {
+            matcher: "",
+            hooks: [{ type: "command", command: hookCommand, timeout: 30 }],
+          },
+        ],
       },
-      null,
-      2
-    )
-
-  const hookJson = buildHookJson(hookCommandLocal)
-  const hookJsonPublished = buildHookJson(hookCommandPublished)
+    },
+    null,
+    2
+  )
 
   const copy = async (text: string, setFlag: (b: boolean) => void) => {
     await navigator.clipboard.writeText(text)
@@ -1238,17 +1229,10 @@ function IssuedKeyPanel({
           ③ 모든 대화 자동 저장 — Claude Code Stop hook 등록
         </p>
         <p className="mb-2 text-[11px] text-emerald-700">
-          아래 JSON 을 <code className="rounded bg-emerald-100 px-1">.claude/settings.local.json</code>{" "}
-          (또는 글로벌 <code className="rounded bg-emerald-100 px-1">~/.claude/settings.json</code>) 의
+          아래 JSON 을 <code className="rounded bg-emerald-100 px-1">~/.claude/settings.json</code>{" "}
+          (또는 프로젝트 한정으로 <code className="rounded bg-emerald-100 px-1">.claude/settings.local.json</code>) 의
           최상위 객체에 병합하세요. 이미 <code className="rounded bg-emerald-100 px-1">hooks</code> 키가 있으면
-          그 안의 <code className="rounded bg-emerald-100 px-1">Stop</code> 배열에 항목 하나만 추가합니다.
-        </p>
-
-        <p className="mb-1 text-[11px] font-semibold text-emerald-900">
-          A. 로컬 개발 / 이 레포를 클론한 환경
-        </p>
-        <p className="mb-1 text-[11px] text-emerald-700">
-          <strong>/절대경로/prompthubs</strong> 부분을 본인 절대경로로 교체하세요 (예: <code className="rounded bg-emerald-100 px-1">/Users/&lt;you&gt;/.../prompthubs</code>).
+          그 안의 <code className="rounded bg-emerald-100 px-1">Stop</code> 배열에 항목 하나만 추가하면 됩니다.
         </p>
         <div className="flex items-start gap-2">
           <pre className="flex-1 overflow-x-auto rounded bg-slate-950 px-3 py-2 font-mono text-[11px] text-slate-100">
@@ -1263,23 +1247,13 @@ function IssuedKeyPanel({
             {copiedHook ? "복사됨" : "JSON 복사"}
           </Button>
         </div>
-
-        <p className="mt-3 mb-1 text-[11px] font-semibold text-emerald-900">
-          B. 배포 환경 / 외부 사용자 (npm 게시 후)
-        </p>
-        <p className="mb-1 text-[11px] text-emerald-700">
-          관리자가 <code className="rounded bg-emerald-100 px-1">mcp-server/</code> 를{" "}
-          <code className="rounded bg-emerald-100 px-1">npm publish</code> 한 뒤에는 절대경로 대신{" "}
-          <code className="rounded bg-emerald-100 px-1">npx -y prompthubs-mcp-hook</code> 으로 끝납니다.
-        </p>
-        <pre className="overflow-x-auto rounded bg-slate-950 px-3 py-2 font-mono text-[11px] text-slate-100">
-          {hookJsonPublished}
-        </pre>
-
         <p className="mt-2 text-[11px] text-emerald-700">
-          등록 후 Claude Code 를 <strong>새 세션으로 재시작</strong>하면 매 응답이 끝날 때마다
-          사용자 프롬프트 + 결과(코드 블록·도구 호출 포함)가 PromptHubs Logs 에 자동
-          기록되고, Notion Logs DB 에도 가독성 있게 동기화됩니다.
+          <code className="rounded bg-emerald-100 px-1">npx</code> 가 실행 시점에{" "}
+          <code className="rounded bg-emerald-100 px-1">prompthubs-mcp-hook</code> 패키지를
+          자동으로 받아오므로 별도 설치는 필요 없습니다. 등록 후 Claude Code 를{" "}
+          <strong>새 세션으로 재시작</strong>하면 매 응답이 끝날 때마다 사용자 프롬프트 +
+          결과(코드 블록·도구 호출 포함)가 PromptHubs Logs 에 자동 기록되고, Notion Logs DB
+          에도 가독성 있게 동기화됩니다.
         </p>
       </div>
 

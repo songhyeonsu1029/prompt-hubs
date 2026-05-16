@@ -5,11 +5,11 @@ spring:
     password: dev
   jpa:
     hibernate:
-      ddl-auto: update    # 개발 단계에서 스키마 자동 반영, 운영에선 none
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${JPA_SHOW_SQL:true}
   data:
     redis:
       host: localhost
