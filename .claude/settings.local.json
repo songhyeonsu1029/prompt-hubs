@@ -1,0 +1,39 @@
+{
+  "env": {
+    "PROMPTHUBS_API_KEY": "ph_UBilzUGSzIrjkglnb8ZXgIgiQ7AdLbqA",
+    "PROMPTHUBS_BASE_URL": "http://localhost:8080"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(docker exec prompthubs-postgres-1 psql -U dev -d prompthubs -c ' *)",
+      "Bash(npx tsc *)",
+      "Bash(./gradlew compileJava -q)",
+      "Bash(ls integration *)",
+      "Bash(ls -la src/main/java/com/mediaproject/prompthubs/integration/common/event/)",
+      "Bash(xargs ls *)",
+      "Bash(node --check /Users/songhyunsoo/대학/prompthubs/mcp-server/auto-save-hook.js)",
+      "Bash(python3 calculator.py)",
+      "Bash(python3 -m py_compile calculator.py)",
+      "mcp__prompthubs__save_log",
+      "Read(//Users/songhyunsoo/.claude/projects/**)",
+      "Bash(python3 data_processor.py)",
+      "Bash(python3 hello.py)",
+      "Bash(./gradlew compileJava)",
+      "Bash(chmod +x *)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PROMPTHUBS_API_KEY=ph_e57vMSMnApVwiIO2KUkEWe-Z_YaCB306 PROMPTHUBS_BASE_URL=http://localhost:8080 node /Users/songhyunsoo/대학/prompthubs/mcp-server/auto-save-hook.js",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

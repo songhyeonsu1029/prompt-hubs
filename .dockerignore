@@ -1,0 +1,15 @@
+.git
+.gitignore
+.idea
+.vscode
+.gradle
+build
+out
+*.iml
+prompt-hubs-web
+mcp-server
+_scratch_test*
+**/node_modules
+*.md
+docker-compose*.yaml
+.env*
