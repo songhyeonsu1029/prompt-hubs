@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -15,9 +15,12 @@ public class SlackOAuthController {
     private final SlackOAuthService slackOAuthService;
 
     @GetMapping("/api/v1/w/{slug}/integrations/slack/connect")
-    public ResponseEntity<Void> connect(@PathVariable String slug) {
+    public ResponseEntity<Map<String, String>> connect(@PathVariable String slug) {
+        if (WorkspaceContextHolder.getContext() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         String url = slackOAuthService.buildAuthorizationUrl(slug);
-        return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(url)).build();
+        return ResponseEntity.ok(Map.of("authorizationUrl", url));
     }
 
     @GetMapping("/api/v1/integrations/slack/callback")

@@ -1002,9 +1002,28 @@ function SlackIntegrationCard({
     },
   })
 
-  const startSlackAuth = () => {
+  const startSlackAuth = async () => {
     setError(null)
-    window.location.href = `/api/v1/w/${slug}/integrations/slack/connect`
+    const popup = window.open("about:blank", "_blank", "noopener,noreferrer")
+    if (!popup) {
+      setError("팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해주세요.")
+      return
+    }
+    try {
+      const res = await apiClient.get<{ authorizationUrl: string }>(
+        `/w/${slug}/integrations/slack/connect`
+      )
+      const url = res.data?.authorizationUrl
+      if (!url) {
+        popup.close()
+        setError("Slack 인증 URL을 받지 못했습니다.")
+        return
+      }
+      popup.location.href = url
+    } catch (err: any) {
+      popup.close()
+      setError(err.response?.data?.message || "Slack 연결 시작 실패")
+    }
   }
 
   return (
