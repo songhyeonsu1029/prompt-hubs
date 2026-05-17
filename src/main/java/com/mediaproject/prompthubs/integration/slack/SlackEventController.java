@@ -67,8 +67,11 @@ public class SlackEventController {
         String payload = form.getOrDefault("payload", "");
         String response = interactionService.handle(payload);
         Map<String, Object> body2 = new HashMap<>();
-        body2.put("response_type", "ephemeral");
-        body2.put("text", response.isBlank() ? "ok" : response);
+        // 빈 응답이면 빈 JSON으로 ack — 모달 close / 카드 이미 업데이트된 경우 모두 처리됨.
+        if (!response.isBlank()) {
+            body2.put("response_type", "ephemeral");
+            body2.put("text", response);
+        }
         return ResponseEntity.ok(body2);
     }
 

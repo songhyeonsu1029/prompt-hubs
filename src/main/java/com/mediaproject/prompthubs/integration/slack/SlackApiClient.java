@@ -64,6 +64,19 @@ public class SlackApiClient {
         }
     }
 
+    public ChatPostMessageResponse postThreadReply(String botToken, String channel, String threadTs, String text) {
+        try {
+            return slack.methods(botToken).chatPostMessage(ChatPostMessageRequest.builder()
+                    .channel(channel)
+                    .threadTs(threadTs)
+                    .text(text)
+                    .build());
+        } catch (IOException | SlackApiException e) {
+            log.error("Slack thread reply failed", e);
+            throw new BusinessException(ErrorCode.EXTERNAL_API_ERROR, e.getMessage());
+        }
+    }
+
     public ChatUpdateResponse updateMessage(String botToken, String channel, String ts, String text, List<LayoutBlock> blocks) {
         try {
             return slack.methods(botToken).chatUpdate(ChatUpdateRequest.builder()
