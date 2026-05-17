@@ -20,6 +20,12 @@ public class IntegrationStatusResponse {
     private LocalDateTime lastSyncAt;
     private String slackTeamId;
     private String slackChannelId;
+    private String slackChannelName;
+    private boolean slackNotifyReviewRequested;
+    private boolean slackNotifyReviewCompleted;
+    private boolean slackNotifyVersionCreated;
+    private boolean slackNotifyPlanWarning;
+    private boolean slackNotifyPrePrompting;
     private String notionLogsDbId;
     private String notionDocsDbId;
     private String notionPromptsDbId;
@@ -34,6 +40,12 @@ public class IntegrationStatusResponse {
                 .lastSyncAt(integration.getLastSyncAt())
                 .slackTeamId(integration.getSlackTeamId())
                 .slackChannelId(integration.getSlackChannelId())
+                .slackChannelName(integration.getSlackChannelName())
+                .slackNotifyReviewRequested(integration.isSlackNotifyReviewRequested())
+                .slackNotifyReviewCompleted(integration.isSlackNotifyReviewCompleted())
+                .slackNotifyVersionCreated(integration.isSlackNotifyVersionCreated())
+                .slackNotifyPlanWarning(integration.isSlackNotifyPlanWarning())
+                .slackNotifyPrePrompting(integration.isSlackNotifyPrePrompting())
                 .notionLogsDbId(integration.getNotionLogsDbId())
                 .notionDocsDbId(integration.getNotionDocsDbId())
                 .notionPromptsDbId(integration.getNotionPromptsDbId())

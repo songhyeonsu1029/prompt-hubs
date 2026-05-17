@@ -56,8 +56,31 @@ public class WorkspaceIntegration extends BaseEntity {
     @Column(name = "slack_channel_id")
     private String slackChannelId;
 
+    @Column(name = "slack_channel_name")
+    private String slackChannelName;
+
     @Column(name = "slack_bot_user_id")
     private String slackBotUserId;
+
+    @Column(name = "slack_notify_review_requested", nullable = false)
+    @Builder.Default
+    private boolean slackNotifyReviewRequested = true;
+
+    @Column(name = "slack_notify_review_completed", nullable = false)
+    @Builder.Default
+    private boolean slackNotifyReviewCompleted = true;
+
+    @Column(name = "slack_notify_version_created", nullable = false)
+    @Builder.Default
+    private boolean slackNotifyVersionCreated = true;
+
+    @Column(name = "slack_notify_plan_warning", nullable = false)
+    @Builder.Default
+    private boolean slackNotifyPlanWarning = true;
+
+    @Column(name = "slack_notify_pre_prompting", nullable = false)
+    @Builder.Default
+    private boolean slackNotifyPrePrompting = true;
 
     @Column(nullable = false)
     @Builder.Default
@@ -96,6 +119,24 @@ public class WorkspaceIntegration extends BaseEntity {
             this.slackChannelId = channelId;
         }
         this.slackBotUserId = botUserId;
+    }
+
+    public void updateSlackChannel(String channelId, String channelName) {
+        this.slackChannelId = channelId;
+        this.slackChannelName = channelName;
+    }
+
+    public void updateSlackNotificationFlags(
+            boolean reviewRequested,
+            boolean reviewCompleted,
+            boolean versionCreated,
+            boolean planWarning,
+            boolean prePrompting) {
+        this.slackNotifyReviewRequested = reviewRequested;
+        this.slackNotifyReviewCompleted = reviewCompleted;
+        this.slackNotifyVersionCreated = versionCreated;
+        this.slackNotifyPlanWarning = planWarning;
+        this.slackNotifyPrePrompting = prePrompting;
     }
 
     public void touchSync() {

@@ -41,7 +41,7 @@ public class SlackNotificationService {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onReviewRequested(ReviewRequestedEvent event) {
-        send(event.workspaceId(), integration -> {
+        send(event.workspaceId(), WorkspaceIntegration::isSlackNotifyReviewRequested, integration -> {
             PromptReview review = event.review();
             String text = String.format("New Prompt Review requested by %s",
                     review.getRequester().getName());
@@ -65,7 +65,7 @@ public class SlackNotificationService {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onReviewCompleted(ReviewCompletedEvent event) {
-        send(event.workspaceId(), integration -> {
+        send(event.workspaceId(), WorkspaceIntegration::isSlackNotifyReviewCompleted, integration -> {
             PromptReview review = event.review();
             String emoji = event.finalStatus() == PromptReview.Status.APPROVED ? "✅ Approved" : "❌ Changes requested";
             String text = String.format("Review %s — *%s*",
@@ -78,7 +78,7 @@ public class SlackNotificationService {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPromptVersionCreated(PromptVersionCreatedEvent event) {
-        send(event.workspaceId(), integration -> {
+        send(event.workspaceId(), WorkspaceIntegration::isSlackNotifyVersionCreated, integration -> {
             String text = String.format("📝 *%s* updated to v%s",
                     event.prompt().getTitle(), event.version().getVersionNumber());
             apiClient.postMessage(tokenCipher.decrypt(integration.getAccessTokenEncrypted()),
@@ -89,7 +89,7 @@ public class SlackNotificationService {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPlanLimitWarning(PlanLimitWarningEvent event) {
-        send(event.workspaceId(), integration -> {
+        send(event.workspaceId(), WorkspaceIntegration::isSlackNotifyPlanWarning, integration -> {
             String text = String.format("⚠️ %s usage %d/%d on Free plan — consider upgrading",
                     event.resource(), event.currentUsage(), event.limit());
             apiClient.postMessage(tokenCipher.decrypt(integration.getAccessTokenEncrypted()),
@@ -100,7 +100,7 @@ public class SlackNotificationService {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPrePromptingViolation(PrePromptingViolationEvent event) {
-        send(event.workspaceId(), integration -> {
+        send(event.workspaceId(), WorkspaceIntegration::isSlackNotifyPrePrompting, integration -> {
             String text = String.format("🚫 *%s* — review request rejected: %s",
                     event.promptTitle(), event.reason());
             if (event.externalUrl() != null) {
@@ -111,7 +111,9 @@ public class SlackNotificationService {
         });
     }
 
-    private void send(UUID workspaceId, java.util.function.Consumer<WorkspaceIntegration> action) {
+    private void send(UUID workspaceId,
+                      java.util.function.Predicate<WorkspaceIntegration> enabledCheck,
+                      java.util.function.Consumer<WorkspaceIntegration> action) {
         if (!properties.isEnabled()) {
             return;
         }
@@ -122,6 +124,9 @@ public class SlackNotificationService {
         }
         WorkspaceIntegration integration = opt.get();
         if (integration.getSlackChannelId() == null || integration.getAccessTokenEncrypted() == null) {
+            return;
+        }
+        if (!enabledCheck.test(integration)) {
             return;
         }
         try {

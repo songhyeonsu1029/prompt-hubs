@@ -53,7 +53,7 @@ esac
 
 # ---- Fetch the repo ----
 APP_DIR=/opt/prompthubs
-REPO_URL="${REPO_URL:-https://github.com/REPLACE_ME/prompthubs.git}"
+REPO_URL="${REPO_URL:-https://github.com/songhyeonsu1029/prompt-hubs}"
 if [ ! -d "${APP_DIR}/.git" ]; then
   git clone "${REPO_URL}" "${APP_DIR}"
 else
@@ -62,9 +62,37 @@ fi
 
 # ---- Seed .env ----
 if [ ! -f "${APP_DIR}/.env" ]; then
-  cp "${APP_DIR}/.env.example" "${APP_DIR}/.env"
+  if [ -f "${APP_DIR}/.env.example" ]; then
+    cp "${APP_DIR}/.env.example" "${APP_DIR}/.env"
+  else
+    cat > "${APP_DIR}/.env" <<'EOF'
+# --- Database ---
+POSTGRES_DB=prompthubs
+POSTGRES_USER=prompthubs
+POSTGRES_PASSWORD=change-me-strong-password
+
+# --- App secrets (rotate before opening to users) ---
+JWT_SECRET=replace-with-32+chars-random-string-for-jwt-signing
+TOKEN_ENCRYPTION_SECRET=replace-with-32bytes-random-secret-for-integration-tokens
+TOKEN_ENCRYPTION_SALT=replace-with-16-hex-chars
+
+# --- Google OAuth ---
+GOOGLE_OAUTH_ENABLED=true
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+GOOGLE_OAUTH_REDIRECT_URI=https://your-domain.example/api/v1/auth/oauth/google/callback
+GOOGLE_OAUTH_FRONTEND_CALLBACK_URL=https://your-domain.example/oauth/callback
+GOOGLE_OAUTH_FRONTEND_LOGIN_URL=https://your-domain.example/login
+
+# --- CORS ---
+APP_CORS_ALLOWED_ORIGINS=https://your-domain.example
+
+# --- JVM ---
+JAVA_OPTS=-Xms256m -Xmx512m
+EOF
+  fi
   chmod 600 "${APP_DIR}/.env"
-  echo "[bootstrap] .env created from .env.example — FILL IN SECRETS BEFORE 'docker compose up'"
+  echo "[bootstrap] .env created — FILL IN SECRETS BEFORE 'docker compose up'"
 fi
 
 echo "[bootstrap] Done. Next steps:"

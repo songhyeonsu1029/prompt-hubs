@@ -5,12 +5,16 @@ import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.SlackApiException;
 import com.slack.api.methods.request.chat.ChatPostMessageRequest;
 import com.slack.api.methods.request.chat.ChatUpdateRequest;
+import com.slack.api.methods.request.conversations.ConversationsListRequest;
 import com.slack.api.methods.request.oauth.OAuthV2AccessRequest;
 import com.slack.api.methods.request.views.ViewsOpenRequest;
 import com.slack.api.methods.response.chat.ChatPostMessageResponse;
 import com.slack.api.methods.response.chat.ChatUpdateResponse;
+import com.slack.api.methods.response.conversations.ConversationsListResponse;
 import com.slack.api.methods.response.oauth.OAuthV2AccessResponse;
 import com.slack.api.methods.response.views.ViewsOpenResponse;
+import com.slack.api.model.Conversation;
+import com.slack.api.model.ConversationType;
 import com.slack.api.model.block.LayoutBlock;
 import com.slack.api.model.view.View;
 import com.mediaproject.prompthubs.global.exception.BusinessException;
@@ -82,6 +86,30 @@ public class SlackApiClient {
                     .build());
         } catch (IOException | SlackApiException e) {
             log.error("Slack viewsOpen failed", e);
+            throw new BusinessException(ErrorCode.EXTERNAL_API_ERROR, e.getMessage());
+        }
+    }
+
+    /**
+     * Returns channels the bot is a member of (both public and private).
+     * Slack only returns channels the bot is invited to when filtering by membership.
+     */
+    public List<Conversation> listBotChannels(String botToken) {
+        try {
+            ConversationsListResponse resp = slack.methods(botToken).conversationsList(
+                    ConversationsListRequest.builder()
+                            .types(List.of(ConversationType.PUBLIC_CHANNEL, ConversationType.PRIVATE_CHANNEL))
+                            .excludeArchived(true)
+                            .limit(200)
+                            .build());
+            if (resp == null || !resp.isOk()) {
+                throw new BusinessException(ErrorCode.EXTERNAL_API_ERROR,
+                        resp == null ? "no response" : resp.getError());
+            }
+            List<Conversation> all = resp.getChannels() == null ? List.of() : resp.getChannels();
+            return all.stream().filter(c -> Boolean.TRUE.equals(c.isMember())).toList();
+        } catch (IOException | SlackApiException e) {
+            log.error("Slack conversations.list failed", e);
             throw new BusinessException(ErrorCode.EXTERNAL_API_ERROR, e.getMessage());
         }
     }

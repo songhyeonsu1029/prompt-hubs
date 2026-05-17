@@ -18,8 +18,10 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Hash,
   Key,
   Loader2,
+  MessageSquare,
   Plug,
   Plus,
   Settings as SettingsIcon,
@@ -76,6 +78,20 @@ interface IntegrationStatus {
   notionDocsDbId: string | null
   notionPromptsDbId: string | null
   notionParentPageId: string | null
+  slackTeamId?: string | null
+  slackChannelId?: string | null
+  slackChannelName?: string | null
+  slackNotifyReviewRequested?: boolean
+  slackNotifyReviewCompleted?: boolean
+  slackNotifyVersionCreated?: boolean
+  slackNotifyPlanWarning?: boolean
+  slackNotifyPrePrompting?: boolean
+}
+
+interface SlackChannelOption {
+  id: string
+  name: string
+  privateChannel: boolean
 }
 
 interface NotionPageOption {
@@ -654,6 +670,7 @@ function IntegrationsTab({ slug }: { slug: string }) {
   })
 
   const notion = integrations.data?.find((i) => i.type === "NOTION")
+  const slack = integrations.data?.find((i) => i.type === "SLACK")
 
   const setupMutation = useMutation({
     mutationFn: async () => {
@@ -892,20 +909,240 @@ function IntegrationsTab({ slug }: { slug: string }) {
         </CardContent>
       </Card>
 
-      <Card className="opacity-70">
-        <CardHeader>
-          <CardTitle className="text-base">Slack (예정)</CardTitle>
-          <CardDescription>
-            슬래시 명령으로 프롬프트를 검색하고, 리뷰 알림을 받습니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" disabled>
-            <Plug className="mr-2 h-4 w-4" />곧 지원 예정
-          </Button>
-        </CardContent>
-      </Card>
+      <SlackIntegrationCard slug={slug} slack={slack} loading={integrations.isLoading} />
     </>
+  )
+}
+
+type SlackFlagKey =
+  | "notifyReviewRequested"
+  | "notifyReviewCompleted"
+  | "notifyVersionCreated"
+  | "notifyPlanWarning"
+  | "notifyPrePrompting"
+
+const SLACK_FLAG_LABELS: Record<SlackFlagKey, string> = {
+  notifyReviewRequested: "리뷰 요청",
+  notifyReviewCompleted: "리뷰 완료",
+  notifyVersionCreated: "새 버전 생성",
+  notifyPlanWarning: "플랜 한도 경고",
+  notifyPrePrompting: "사전 프롬프팅 위반",
+}
+
+function SlackIntegrationCard({
+  slug,
+  slack,
+  loading,
+}: {
+  slug: string
+  slack: IntegrationStatus | undefined
+  loading: boolean
+}) {
+  const qc = useQueryClient()
+  const [error, setError] = useState<string | null>(null)
+  const [pendingChannelId, setPendingChannelId] = useState<string>("")
+  const [pendingFlags, setPendingFlags] = useState<Record<SlackFlagKey, boolean>>({
+    notifyReviewRequested: true,
+    notifyReviewCompleted: true,
+    notifyVersionCreated: true,
+    notifyPlanWarning: true,
+    notifyPrePrompting: true,
+  })
+  const [initialized, setInitialized] = useState(false)
+
+  const isConnected = !!slack?.active && !!slack?.configured
+
+  // 서버에서 받은 값으로 폼 1회 초기화
+  if (!initialized && slack && isConnected) {
+    setPendingChannelId(slack.slackChannelId ?? "")
+    setPendingFlags({
+      notifyReviewRequested: slack.slackNotifyReviewRequested ?? true,
+      notifyReviewCompleted: slack.slackNotifyReviewCompleted ?? true,
+      notifyVersionCreated: slack.slackNotifyVersionCreated ?? true,
+      notifyPlanWarning: slack.slackNotifyPlanWarning ?? true,
+      notifyPrePrompting: slack.slackNotifyPrePrompting ?? true,
+    })
+    setInitialized(true)
+  }
+
+  const channelsQuery = useQuery<SlackChannelOption[]>({
+    queryKey: ["slack-channels", slug],
+    enabled: isConnected,
+    queryFn: async () => {
+      const res = await apiClient.get(`/w/${slug}/integrations/slack/channels`)
+      return Array.isArray(res.data) ? res.data : []
+    },
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const channel = channelsQuery.data?.find((c) => c.id === pendingChannelId)
+      await apiClient.put(`/w/${slug}/integrations/slack/settings`, {
+        channelId: pendingChannelId,
+        channelName: channel?.name ?? null,
+        ...pendingFlags,
+      })
+    },
+    onSuccess: () => {
+      setError(null)
+      qc.invalidateQueries({ queryKey: ["integrations", slug] })
+    },
+    onError: (err: any) => {
+      setError(err.response?.data?.message || "설정 저장 실패")
+    },
+  })
+
+  const disconnectMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.delete(`/w/${slug}/integrations/slack`)
+    },
+    onSuccess: () => {
+      setInitialized(false)
+      qc.invalidateQueries({ queryKey: ["integrations", slug] })
+    },
+  })
+
+  const startSlackAuth = () => {
+    setError(null)
+    window.location.href = `/api/v1/w/${slug}/integrations/slack/connect`
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center text-base">
+          <MessageSquare className="mr-2 h-4 w-4 text-slate-700" />
+          Slack
+        </CardTitle>
+        <CardDescription>
+          리뷰 알림을 슬랙 채널로 보내고, 버튼으로 바로 승인/반려할 수 있습니다.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-4 text-slate-400">
+            <Loader2 className="h-4 w-4 animate-spin" />
+          </div>
+        ) : isConnected ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
+              <Check className="h-4 w-4" />
+              연결됨 {slack?.slackTeamId ? `(team ${slack.slackTeamId})` : ""}
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="slack-channel" className="text-xs font-medium text-slate-700">
+                알림 채널
+              </Label>
+              <div className="flex items-center gap-2">
+                {channelsQuery.isLoading ? (
+                  <div className="flex h-9 flex-1 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-xs text-slate-400">
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" /> 채널 불러오는 중
+                  </div>
+                ) : (
+                  <select
+                    id="slack-channel"
+                    value={pendingChannelId}
+                    onChange={(e) => setPendingChannelId(e.target.value)}
+                    className="h-9 flex-1 rounded-md border border-slate-200 bg-white px-2 text-sm"
+                  >
+                    <option value="">채널을 선택하세요</option>
+                    {channelsQuery.data?.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.privateChannel ? "🔒" : "#"} {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500">
+                원하는 채널이 안 보이면 슬랙에서{" "}
+                <code className="rounded bg-slate-100 px-1">/invite @PromptHubs</code>
+                {" "}로 봇을 초대한 뒤 새로고침하세요.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-slate-700">알림 종류</p>
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                {(Object.keys(SLACK_FLAG_LABELS) as SlackFlagKey[]).map((key) => (
+                  <label
+                    key={key}
+                    className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={pendingFlags[key]}
+                      onChange={(e) =>
+                        setPendingFlags((prev) => ({
+                          ...prev,
+                          [key]: e.target.checked,
+                        }))
+                      }
+                      className="h-3.5 w-3.5"
+                    />
+                    {SLACK_FLAG_LABELS[key]}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || !pendingChannelId}
+              >
+                {saveMutation.isPending ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : (
+                  <Check className="mr-2 h-3 w-3" />
+                )}
+                설정 저장
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (confirm("Slack 연결을 해제하시겠습니까?")) {
+                    disconnectMutation.mutate()
+                  }
+                }}
+                disabled={disconnectMutation.isPending}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="mr-2 h-3 w-3" />
+                연결 해제
+              </Button>
+            </div>
+
+            {slack?.slackChannelName && pendingChannelId === slack.slackChannelId && (
+              <p className="text-[11px] text-slate-500">
+                <Hash className="mr-0.5 inline h-3 w-3" />
+                현재 채널: {slack.slackChannelName}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">
+              슬랙 워크스페이스에 PromptHubs 봇을 설치하면 채널에서 리뷰 알림을 받고
+              버튼으로 바로 승인할 수 있습니다.
+            </p>
+            <Button onClick={startSlackAuth}>
+              <Plug className="mr-2 h-4 w-4" />
+              Slack 연결 시작
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
