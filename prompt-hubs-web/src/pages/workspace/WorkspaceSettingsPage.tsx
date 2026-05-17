@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import apiClient from "@/api/client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Card,
   CardContent,
@@ -104,7 +104,21 @@ interface NotionPageOption {
 
 export default function WorkspaceSettingsPage() {
   const { slug } = useParams()
-  const [tab, setTab] = useState<Tab>("general")
+  const [searchParams] = useSearchParams()
+  const [tab, setTab] = useState<Tab>(() => {
+    const initial = searchParams.get("tab") as Tab | null
+    return initial === "integrations" || initial === "members" || initial === "api-keys" || initial === "general"
+      ? initial
+      : "general"
+  })
+
+  // OAuth 콜백에서 돌아왔을 때 탭과 메시지 정리
+  useEffect(() => {
+    const tabParam = searchParams.get("tab") as Tab | null
+    if (tabParam && tabParam !== tab && (tabParam === "integrations" || tabParam === "members" || tabParam === "api-keys" || tabParam === "general")) {
+      setTab(tabParam)
+    }
+  }, [searchParams, tab])
 
   const workspace = useQuery<Workspace>({
     queryKey: ["workspace", slug],
@@ -659,7 +673,28 @@ function ApiKeysTab({ slug }: { slug: string }) {
 
 function IntegrationsTab({ slug }: { slug: string }) {
   const qc = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
+
+  useEffect(() => {
+    const ok = searchParams.get("notionConnected")
+    const err = searchParams.get("notionError")
+    let touched = false
+    if (ok) {
+      setInfo("Notion 연결이 완료되었습니다.")
+      searchParams.delete("notionConnected")
+      touched = true
+    }
+    if (err) {
+      setError(`Notion 연결 실패: ${decodeURIComponent(err)}`)
+      searchParams.delete("notionError")
+      touched = true
+    }
+    if (touched) {
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const integrations = useQuery<IntegrationStatus[]>({
     queryKey: ["integrations", slug],
@@ -727,24 +762,17 @@ function IntegrationsTab({ slug }: { slug: string }) {
 
   const startNotionAuth = async () => {
     setError(null)
-    const popup = window.open("about:blank", "_blank", "noopener,noreferrer")
-    if (!popup) {
-      setError("팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해주세요.")
-      return
-    }
     try {
       const res = await apiClient.get<{ authorizationUrl: string }>(
         `/w/${slug}/integrations/notion/connect`
       )
       const url = res.data?.authorizationUrl
       if (!url) {
-        popup.close()
         setError("Notion 인증 URL을 받지 못했습니다.")
         return
       }
-      popup.location.href = url
+      window.location.href = url
     } catch (err: any) {
-      popup.close()
       setError(err.response?.data?.message || "Notion 연결 시작 실패")
     }
   }
@@ -765,6 +793,11 @@ function IntegrationsTab({ slug }: { slug: string }) {
           {error && (
             <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
+            </div>
+          )}
+          {info && (
+            <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">
+              {info}
             </div>
           )}
 
@@ -939,7 +972,9 @@ function SlackIntegrationCard({
   loading: boolean
 }) {
   const qc = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [pendingChannelId, setPendingChannelId] = useState<string>("")
   const [pendingFlags, setPendingFlags] = useState<Record<SlackFlagKey, boolean>>({
     notifyReviewRequested: true,
@@ -949,6 +984,26 @@ function SlackIntegrationCard({
     notifyPrePrompting: true,
   })
   const [initialized, setInitialized] = useState(false)
+
+  // OAuth 콜백에서 돌아왔을 때 결과 표시 + 쿼리 정리
+  useEffect(() => {
+    const ok = searchParams.get("slackConnected")
+    const err = searchParams.get("slackError")
+    let touched = false
+    if (ok) {
+      setInfo("Slack 연결이 완료되었습니다. 알림 채널과 종류를 선택해주세요.")
+      searchParams.delete("slackConnected")
+      touched = true
+    }
+    if (err) {
+      setError(`Slack 연결 실패: ${decodeURIComponent(err)}`)
+      searchParams.delete("slackError")
+      touched = true
+    }
+    if (touched) {
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const isConnected = !!slack?.active && !!slack?.configured
 
@@ -1004,24 +1059,17 @@ function SlackIntegrationCard({
 
   const startSlackAuth = async () => {
     setError(null)
-    const popup = window.open("about:blank", "_blank", "noopener,noreferrer")
-    if (!popup) {
-      setError("팝업이 차단되었습니다. 브라우저에서 이 사이트의 팝업을 허용해주세요.")
-      return
-    }
     try {
       const res = await apiClient.get<{ authorizationUrl: string }>(
         `/w/${slug}/integrations/slack/connect`
       )
       const url = res.data?.authorizationUrl
       if (!url) {
-        popup.close()
         setError("Slack 인증 URL을 받지 못했습니다.")
         return
       }
-      popup.location.href = url
+      window.location.href = url
     } catch (err: any) {
-      popup.close()
       setError(err.response?.data?.message || "Slack 연결 시작 실패")
     }
   }
@@ -1041,6 +1089,11 @@ function SlackIntegrationCard({
         {error && (
           <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             {error}
+          </div>
+        )}
+        {info && (
+          <div className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">
+            {info}
           </div>
         )}
 
