@@ -32,7 +32,7 @@ public class SlackCommandService {
      */
     public String handleCommand(String teamId, String command, String text) {
         Optional<WorkspaceIntegration> opt = integrationRepository
-                .findBySlackTeamIdAndType(teamId, IntegrationType.SLACK);
+                .findFirstBySlackTeamIdAndTypeOrderByCreatedAtDesc(teamId, IntegrationType.SLACK);
         if (opt.isEmpty() || !opt.get().isActive()) {
             return ":warning: This Slack workspace isn't connected to a Prompt Hubs workspace.";
         }

@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PROMPTHUBS_API_KEY=ph_e57vMSMnApVwiIO2KUkEWe-Z_YaCB306 PROMPTHUBS_BASE_URL=http://localhost:8080 node /Users/songhyunsoo/대학/prompthubs/mcp-server/auto-save-hook.js",
+            "command": "PROMPTHUBS_API_KEY=ph_ioLLbijBy0sdKMmqC9sQsTFXqVFsegPU PROMPTHUBS_BASE_URL=https://d2d6vtav2hzr86.cloudfront.net npx -y prompthubs-mcp-hook",
             "timeout": 30
           }
         ]

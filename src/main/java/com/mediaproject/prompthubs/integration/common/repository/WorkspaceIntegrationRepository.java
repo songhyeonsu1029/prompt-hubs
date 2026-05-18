@@ -16,5 +16,9 @@ public interface WorkspaceIntegrationRepository extends JpaRepository<WorkspaceI
 
     List<WorkspaceIntegration> findByTypeAndActiveTrue(IntegrationType type);
 
-    Optional<WorkspaceIntegration> findBySlackTeamIdAndType(String slackTeamId, IntegrationType type);
+    // Paired with the slack_team_id UNIQUE constraint on workspace_integrations.
+    // OrderByCreatedAtDesc keeps callers safe even before the constraint is in place
+    // (legacy/duplicate rows) by always returning the most recently created row.
+    Optional<WorkspaceIntegration> findFirstBySlackTeamIdAndTypeOrderByCreatedAtDesc(
+            String slackTeamId, IntegrationType type);
 }

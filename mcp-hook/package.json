@@ -1,0 +1,40 @@
+{
+  "name": "prompthubs-mcp-hook",
+  "version": "0.1.0",
+  "description": "Claude Code Stop hook that auto-archives each conversation turn to a PromptHubs workspace.",
+  "type": "module",
+  "bin": {
+    "prompthubs-mcp-hook": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "prompthubs",
+    "claude",
+    "claude-code",
+    "mcp",
+    "hook",
+    "auto-save",
+    "logging"
+  ],
+  "author": "songhyeonsu1029 <shs032428@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/songhyeonsu1029/prompt-hubs/tree/main/mcp-hook#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/songhyeonsu1029/prompt-hubs.git",
+    "directory": "mcp-hook"
+  },
+  "bugs": {
+    "url": "https://github.com/songhyeonsu1029/prompt-hubs/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

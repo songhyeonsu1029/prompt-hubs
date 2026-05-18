@@ -10,8 +10,12 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "workspace_integrations",
-        uniqueConstraints = @UniqueConstraint(name = "uk_workspace_integration_type",
-                columnNames = {"workspace_id", "type"})
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_workspace_integration_type",
+                        columnNames = {"workspace_id", "type"}),
+                @UniqueConstraint(name = "uk_workspace_integration_slack_team",
+                        columnNames = {"slack_team_id"})
+        }
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

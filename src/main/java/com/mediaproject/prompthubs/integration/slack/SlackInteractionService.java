@@ -104,7 +104,7 @@ public class SlackInteractionService {
             return;
         }
         Optional<WorkspaceIntegration> opt = integrationRepository
-                .findBySlackTeamIdAndType(teamId, IntegrationType.SLACK);
+                .findFirstBySlackTeamIdAndTypeOrderByCreatedAtDesc(teamId, IntegrationType.SLACK);
         if (opt.isEmpty() || opt.get().getAccessTokenEncrypted() == null) {
             return;
         }
@@ -178,7 +178,7 @@ public class SlackInteractionService {
             return;
         }
         Optional<WorkspaceIntegration> opt = integrationRepository
-                .findBySlackTeamIdAndType(teamId, IntegrationType.SLACK);
+                .findFirstBySlackTeamIdAndTypeOrderByCreatedAtDesc(teamId, IntegrationType.SLACK);
         if (opt.isEmpty() || opt.get().getAccessTokenEncrypted() == null) {
             return;
         }
@@ -267,7 +267,7 @@ public class SlackInteractionService {
         if (teamId != null && channelId != null && messageTs != null) {
             try {
                 Optional<WorkspaceIntegration> opt = integrationRepository
-                        .findBySlackTeamIdAndType(teamId, IntegrationType.SLACK);
+                        .findFirstBySlackTeamIdAndTypeOrderByCreatedAtDesc(teamId, IntegrationType.SLACK);
                 if (opt.isPresent() && opt.get().getAccessTokenEncrypted() != null) {
                     String token = tokenCipher.decrypt(opt.get().getAccessTokenEncrypted());
                     String threadText = "💬 *<@" + slackUser + ">*\n" + commentText;
